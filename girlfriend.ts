@@ -1,5 +1,5 @@
 import dotenv from 'dotenv'
-import { choice, noul, score, TypeSafeClient } from '@typesafe-ai/sdk'
+import { choice, score, TypeSafeClient } from '@typesafe-ai/sdk'
 
 dotenv.config({ quiet: true })
 
@@ -16,6 +16,20 @@ type GirlfriendSituation =
   | 'direct_conflict'
   | 'needs_space'
   | 'unclear'
+
+type InterpersonalSignal =
+  | 'surface_permission'
+  | 'surface_reassurance'
+  | 'surface_consideration'
+  | 'direct_discontent'
+  | 'none_or_unsupported'
+
+type ReplyFocus =
+  | 'acknowledge_impact'
+  | 'offer_presence'
+  | 'give_a_specific_update'
+  | 'clarify_gently'
+  | 'respect_space'
 
 const [message, context = '沒有提供額外脈絡。'] = process.argv.slice(2)
 
@@ -44,28 +58,54 @@ if (message === undefined || message.trim() === '') {
           unclear: '資訊不足：單靠現有訊息與脈絡，無法可靠區分以上情境。',
         },
       ),
-      contrary_wording: noul(
-        '依據 `message` 與 `context`，這則訊息是否可能出現字面意思與實際在意事項不一致的情況？只有文字與脈絡共同支持時才判為是，例如表面允許、表面沒事或表面體貼，但脈絡顯示期待落差。不可把固定字詞當證據；只有短句或缺少脈絡時，判為否。',
+      interpersonal_signal: choice(
+        '依據 `message` 與 `context`，判讀這則訊息呈現的溝通訊號。字面看似允許、沒事或體貼，只有在前後文同時支持期待落差時，才可判為有落差；不可將固定字詞、單一標點或短句直接當成不滿證據。驚嘆號、問號、訊息長度與簡短回覆都只能當輔助線索，必須結合語意與脈絡。',
+        {
+          surface_permission: '表面放行：看似同意對方去做某事或說「隨意」，但脈絡顯示比較在意陪伴、被商量或共同決定。',
+          surface_reassurance: '表面沒事：看似說沒關係、算了或自己很好，但脈絡顯示仍有未處理的事件、期待或受傷感。',
+          surface_consideration: '表面體貼：看似催對方先忙、慢慢來或不打擾，但脈絡顯示可能在意被延後、忽略或沒有主動更新。',
+          direct_discontent: '直接不滿：文字本身明確表達生氣、失望、責備、質問或受傷，不需要從反話推論。',
+          none_or_unsupported: '沒有足夠證據：訊息與脈絡不支持上述溝通訊號，或仍有多種合理解讀。',
+        },
       ),
-      mood_level: score('評估目前交往中伴侶在 `message` 裡表達出的情緒張力。這是根據文字與脈絡的可能狀態，不是對真實內心、人格或動機的定論。短句、單一標點或「好」「沒事」「隨便你」等文字，沒有脈絡時不可直接當成生氣。', [
-        '1 分：看起來平穩；是單純確認、請求、安排，或沒有明顯不舒服訊號。',
-        '3 分：可能有點在意、不舒服、失望、委屈、期待落差或需要被關心，但仍有其他合理解讀。',
-        '5 分：明確表達強烈不滿、生氣、受傷、失望、責備、辱罵或高度關係壓力。',
-      ]),
-      context_adequacy: score('現有 `message` 與 `context` 是否足以可靠判讀目前交往中伴侶的情緒張力與回覆方向？只評估已提供的資訊，不得自行補完對話歷史。', [
-        '1 分：缺少事件、約定、時間或前後文，且文字本身沒有明確情緒或請求。',
-        '3 分：有部分脈絡，但仍存在多種合理解讀。',
-        '5 分：訊息、具體事件與前後文都足夠，能提出有條件的回覆建議。',
-      ]),
+      mood_level: score(
+        '評估目前交往中伴侶在 `message` 裡表達出的情緒張力。這是根據文字與脈絡的可能狀態，不是對真實內心、人格或動機的定論。請綜合具體事件、期待落差、用字、標點與訊息長度；後三者只能輔助，不能取代脈絡。短句、單一標點或「好」「沒事」「隨便你」等文字，沒有脈絡時不可直接當成生氣。',
+        [
+          '1 分：看起來平穩；是單純確認、請求、安排，或沒有明顯不舒服訊號。',
+          '2 分：有些微情緒線索，但資訊不足或仍有合理的中性解讀。',
+          '3 分：可能有點在意、不舒服、失望、委屈、期待落差或需要被關心。',
+          '4 分：明顯不舒服、失望、被忽略或關係緊繃，宜先處理具體事件與感受。',
+          '5 分：明確表達強烈不滿、生氣、受傷、責備、辱罵、逼問或高度關係壓力。',
+        ],
+      ),
+      reply_focus: choice(
+        '根據 `message` 與 `context`，選出現在最適合的單一回覆方向。此判斷是降低誤會的溝通建議，不得假設對方真正的內心或要求使用者迎合。',
+        {
+          acknowledge_impact: '先承認具體事件、延誤或失約造成的影響，再提出可做到的補救。',
+          offer_presence: '先確認她現在比較需要陪伴、傾聽，或一起想辦法；不要直接替她決定。',
+          give_a_specific_update: '清楚說明目前限制與可做到的具體時間，避免只回「好」或讓對方繼續等。',
+          clarify_gently: '用一個不預設她生氣的具體問題確認在意事項，不要把字面話直接當最終結論。',
+          respect_space: '尊重她想暫停或限制互動的要求，不要連續傳訊息要求立刻回覆。',
+        },
+      ),
+      context_adequacy: score(
+        '現有 `message` 與 `context` 是否足以可靠判讀目前交往中伴侶的情緒張力與回覆方向？只評估已提供的資訊，不得自行補完對話歷史。',
+        [
+          '1 分：缺少事件、約定、時間或前後文，且文字本身沒有明確情緒或請求。',
+          '3 分：有部分脈絡，但仍存在多種合理解讀。',
+          '5 分：訊息、具體事件與前後文都足夠，能提出有條件的回覆建議。',
+        ],
+      ),
     },
   })
 
-  const { context_adequacy, contrary_wording, mood_level, situation } = response.answers
+  const { context_adequacy, interpersonal_signal, mood_level, reply_focus, situation } = response.answers
   const lacksContext = context_adequacy.score < 0.5 && situation.choice === 'unclear'
-  const hasContraryWording = !lacksContext && contrary_wording.noul >= 0.6
-  const baseMoodIndex = Math.round((mood_level.score / 2) * 100)
-  const contraryWordingBoost = hasContraryWording ? Math.round(contrary_wording.noul * 20) : 0
-  const moodIndex = Math.min(100, baseMoodIndex + contraryWordingBoost)
+  const hasReliableSignal = !lacksContext
+    && interpersonal_signal.choice !== 'none_or_unsupported'
+    && interpersonal_signal.confidence >= 0.6
+  const hasReliableReplyFocus = !lacksContext && reply_focus.confidence >= 0.6
+  const moodIndex = Math.round((mood_level.score / 4) * 100)
   const moodSummary = lacksContext
     ? '無法可靠判讀'
     : moodIndex >= 75
@@ -76,7 +116,7 @@ if (message === undefined || message.trim() === '') {
           ? '可能有點在意或有感觸'
           : '看起來平穩'
 
-  const nextSteps: Record<GirlfriendSituation, string> = {
+  const situationSteps: Record<GirlfriendSituation, string> = {
     practical_request: '先直接回答能不能處理這件事；做不到時，說明限制與你能做到的時間。',
     unmet_expectation: '先承認沒有做到原本的約定或沒有主動更新，再給一個你確定做得到的新時間。',
     needs_listening: '先問她想要你傾聽，還是一起想辦法；先回應感受，不要急著說教。',
@@ -84,15 +124,37 @@ if (message === undefined || message.trim() === '') {
     needs_space: '尊重她想暫停或限制互動的要求；不要連續傳訊息要求她立刻回覆。',
     unclear: '這句話不足以判斷她的心情。若有待處理的事，只問一個具體問題；否則先不要追問她是不是生氣。',
   }
+  const replySteps: Record<ReplyFocus, string> = {
+    acknowledge_impact: '先承認具體事件、延誤或失約造成的影響，再給一個你確定做得到的補救或新時間。',
+    offer_presence: '先問她現在比較想被傾聽、陪伴，還是一起想辦法；先回應感受，不要急著說教。',
+    give_a_specific_update: '說清楚你目前的限制與能回覆或完成的具體時間；不要只回「好」讓她繼續等。',
+    clarify_gently: '先不要照字面直接決定；可問「我想確認你現在比較在意的是哪一部分？」',
+    respect_space: '尊重她想暫停或限制互動的要求；不要連續傳訊息要求她立刻回覆。',
+  }
+  const signalDescriptions: Record<Exclude<InterpersonalSignal, 'none_or_unsupported'>, string> = {
+    surface_permission: '可能表面放行，但脈絡顯示更在意陪伴、被商量或共同決定。',
+    surface_reassurance: '可能表面說沒事，但脈絡顯示仍有未處理的期待或感受。',
+    surface_consideration: '可能表面體貼，但脈絡顯示在意被延後、忽略或沒有主動更新。',
+    direct_discontent: '文字直接表達了不滿、受傷或關係壓力。',
+  }
 
-  const nextStep = hasContraryWording && situation.choice !== 'needs_space'
-    ? '這句可能有字面與在意事項的落差。先不要照字面直接決定；可回「我想確認你比較在意的是哪一部分？」'
-    : nextSteps[situation.choice]
+  const nextStep = situation.choice === 'needs_space'
+    ? situationSteps.needs_space
+    : hasReliableReplyFocus
+      ? replySteps[reply_focus.choice]
+      : situationSteps[situation.choice]
+  const diagnosis = lacksContext
+    ? '資訊不足，沒有把短句、標點或固定字詞當成情緒結論。'
+    : hasReliableSignal
+      ? signalDescriptions[interpersonal_signal.choice]
+      : '沒有足夠證據判定反話或明確不滿；建議以具體事件和問題回應。'
 
   console.log()
   console.log('Jev 女友對話求生慾即時警報器')
   console.log()
   console.log(`女友心情指數：${lacksContext ? '無法可靠判讀' : `${moodIndex}／100`}｜${moodSummary}`)
+  console.log()
+  console.log(`Jev 判讀：${diagnosis}`)
   console.log()
   console.log(`建議行動事項：${nextStep}`)
 }
