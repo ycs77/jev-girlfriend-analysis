@@ -1,6 +1,5 @@
 import dotenv from 'dotenv'
-import { choice, score, TypeSafeClient } from '@typesafe-ai/sdk'
-import Table from 'tty-table'
+import { choice, noul, score, TypeSafeClient } from '@typesafe-ai/sdk'
 
 dotenv.config({ quiet: true })
 
@@ -10,32 +9,13 @@ type GirlfriendConversation = {
   context: string
 }
 
-type GirlfriendSignal =
+type GirlfriendSituation =
   | 'practical_request'
-  | 'direct_feedback'
-  | 'reassurance_or_connection'
-  | 'coordination_or_expectation'
-  | 'boundary_setting'
-  | 'indirect_tension'
-  | 'insufficient_context'
-
-type RiskLevel = 'safe' | 'caution' | 'danger'
-type ContraryWordingPattern =
-  | 'literal_or_no_signal'
-  | 'surface_acceptance'
-  | 'surface_reassurance'
-  | 'surface_distancing'
-  | 'insufficient_context'
-const contraryWordingExamples = `
-以下是反話判斷的參考範例與可能含義。它們不是固定規則，只有訊息和脈絡共同支持時才能採用：
-- 「去啊」：表面上允許對方出門，可能是在表達沒有被納入考量或期待被主動關心
-- 「隨便你」或「你高興就好」：表面上把決定交給對方，可能是在表達挫折、不滿或想確認需求是否被重視
-- 「不用陪我沒關係」：表面上降低需求，可能是在表達想被陪伴但不想直接要求
-- 「沒事」或「我很好」：表面上表示一切正常，可能代表尚未準備好說明感受，而不是必然生氣
-- 「算了」：表面上結束話題，可能是在表達溝通無效、失望或暫時不想繼續討論
-- 「你想太多了」：可能是在拒絕或迴避當前話題，不必然等於對方承認或否認某件事
-- 「那你先忙」、「不打擾你了」或「你慢慢來，我不急」：表面上體貼或不催促，可能是在表達等待、被忽略或期待落差
-`
+  | 'unmet_expectation'
+  | 'needs_listening'
+  | 'direct_conflict'
+  | 'needs_space'
+  | 'unclear'
 
 const [message, context = '沒有提供額外脈絡。'] = process.argv.slice(2)
 
@@ -53,176 +33,66 @@ if (message === undefined || message.trim() === '') {
   const response = await client.systemOne({
     state,
     questions: {
-      girlfriend_signal: choice(
-        '依據目前交往中伴侶的 `message` 與 `context`，這則訊息最主要呈現哪一種可觀察的溝通訊號？不要斷言對方的內心動機；若資訊不足或有多種同等合理解讀，選擇「資訊不足」。',
+      situation: choice(
+        '依據目前交往中伴侶的 `message` 與 `context`，選出最能決定下一步回覆方式的情境。只根據文字與提供脈絡，不得斷言對方真正的內心動機。沒有足夠資訊時選擇「資訊不足」。',
         {
-          practical_request: '實際請求：明確詢問資訊、協助、安排、物品或其他可處理事項。',
-          direct_feedback: '直接回饋：具體指出某件事造成不舒服、不滿、失望或需要調整。',
-          reassurance_or_connection: '需要連結或支持：分享脆弱感受、需要陪伴、確認關係感受，或想得到關心。',
-          coordination_or_expectation: '協調安排或期待：確認時間、行程、回覆節奏，或提醒先前約定。',
-          boundary_setting: '設立界線：明確限制話題、互動方式、時間、見面或溝通管道。',
-          indirect_tension: '間接緊張：可能有諷刺、疏離或試探，但沒有足夠直接資訊確認原因。',
-          insufficient_context: '資訊不足：單靠現有訊息與脈絡，無法可靠區分以上型態。',
+          practical_request: '具體請求：明確詢問資訊、協助、安排、物品或其他可處理事項。',
+          unmet_expectation: '約定落空或期待落差：提到等待、未回覆、延後、忘記約定，或沒有被事先告知。',
+          needs_listening: '想被傾聽或支持：分享壓力、脆弱感受或近況，沒有明確要求解決問題。',
+          direct_conflict: '直接衝突：明確表達不滿、生氣、失望、責備、辱罵或逼問。',
+          needs_space: '想暫停或設界線：明確表示現在不想談、需要時間，或限制互動方式。',
+          unclear: '資訊不足：單靠現有訊息與脈絡，無法可靠區分以上情境。',
         },
       ),
-      friction_level: score('只根據目前交往中伴侶的 `message` 與 `context`，評估這次回覆造成溝通摩擦的可能性；這不是對對方人格、憤怒程度或真正意圖的判決。', [
-        '1 分：語氣平穩，或是單純確認、安排與請求；一般回覆不太會升高摩擦。',
-        '3 分：有不滿、脆弱、諷刺、期待落差或模稜兩可訊號；回覆時應避免猜測動機或立即辯解。',
-        '5 分：有明確衝突、強烈指責、辱罵、逼問或反覆忽略的界線；不當回覆很可能讓對話升高。',
-      ]),
-      girlfriend_mood_level: score('評估目前交往中伴侶在 `message` 裡表達出的情緒張力。這是文字與脈絡的觀察值，不是對真實內心、人格或動機的定論；Jev 對反話的評估可作為獨立參考。', [
-        '1 分：語氣自然、平穩，沒有明顯不滿、受傷、焦慮或被忽略的訊號。',
-        '3 分：可能有失望、委屈、期待落差、冷淡或需要被關心的訊號，但仍有其他合理解讀。',
-        '5 分：明確表達強烈不滿、受傷、失望、怒氣或關係壓力，需要優先放慢回應並確認感受。',
-      ]),
-      contrary_wording_pattern: choice(
-        `依據 \`message\` 與 \`context\`，這則訊息最可能呈現哪一種「字面意思可能與溝通意圖不同」的反話模式？只根據文字與已提供的脈絡判斷；不可把固定字詞視為證據，也不可斷言對方真正的內心動機。${contraryWordingExamples}`,
-        {
-          literal_or_no_signal: '字面一致或沒有反話訊號：文字內容與直接溝通一致，或看不出字面與可能意圖有落差。',
-          surface_acceptance: '表面允許：看似同意、放行或把選擇交給對方，但脈絡可能顯示期待落差或不滿。',
-          surface_reassurance: '表面沒事：看似表示沒有問題、不需要關心或一切良好，但脈絡可能顯示有未處理的感受。',
-          surface_distancing: '表面體貼或抽離：看似催促對方先忙、降低需求或結束話題，但脈絡可能顯示疏離、等待或失望。',
-          insufficient_context: '資訊不足：沒有足夠文字或脈絡判斷是否存在字面與可能意圖的落差。',
-        },
+      contrary_wording: noul(
+        '依據 `message` 與 `context`，這則訊息是否可能出現字面意思與實際在意事項不一致的情況？只有文字與脈絡共同支持時才判為是，例如表面允許、表面沒事或表面體貼，但脈絡顯示期待落差。不可把固定字詞當證據；只有短句或缺少脈絡時，判為否。',
       ),
-      contrary_wording_level: score(`根據 \`message\` 與 \`context\`，評估字面意思與可能溝通意圖存在落差的可能性。反話只是可能性；沒有充分脈絡時必須維持低分或中間分，不得把短句或固定字詞直接視為反話。${contraryWordingExamples}`, [
-        '1 分：字面意思大致明確，沒有足夠證據顯示隱含不同意思。',
-        '3 分：可能有間接、不滿、抽離或期待落差訊號，但仍有同等合理的字面解讀。',
-        '5 分：文字與脈絡共同顯示明顯的字面落差、諷刺或壓抑不滿；仍應以確認取代斷言。',
+      mood_level: score('評估目前交往中伴侶在 `message` 裡表達出的情緒張力。這是根據文字與脈絡的可能狀態，不是對真實內心、人格或動機的定論。短句、單一標點或「好」「沒事」「隨便你」等文字，沒有脈絡時不可直接當成生氣。', [
+        '1 分：看起來平穩；是單純確認、請求、安排，或沒有明顯不舒服訊號。',
+        '3 分：可能有點在意、不舒服、失望、委屈、期待落差或需要被關心，但仍有其他合理解讀。',
+        '5 分：明確表達強烈不滿、生氣、受傷、失望、責備、辱罵或高度關係壓力。',
       ]),
-      context_adequacy: score('現有 `message` 與 `context` 是否足以支持對目前交往中伴侶的對話建議？只評估已提供的資訊，不得自行補完對話歷史。', [
-        '1 分：缺少事件、約定、時間或前後文，無法可靠解讀語氣。',
+      context_adequacy: score('現有 `message` 與 `context` 是否足以可靠判讀目前交往中伴侶的情緒張力與回覆方向？只評估已提供的資訊，不得自行補完對話歷史。', [
+        '1 分：缺少事件、約定、時間或前後文，且文字本身沒有明確情緒或請求。',
         '3 分：有部分脈絡，但仍存在多種合理解讀。',
-        '5 分：訊息、具體事件與前後文都足夠，能提出有條件的溝通建議。',
+        '5 分：訊息、具體事件與前後文都足夠，能提出有條件的回覆建議。',
       ]),
     },
   })
 
-  const {
-    context_adequacy,
-    friction_level,
-    girlfriend_mood_level,
-    contrary_wording_level,
-    contrary_wording_pattern,
-    girlfriend_signal,
-  } = response.answers
+  const { context_adequacy, contrary_wording, mood_level, situation } = response.answers
+  const lacksContext = context_adequacy.score < 0.5 && situation.choice === 'unclear'
+  const hasContraryWording = !lacksContext && contrary_wording.noul >= 0.6
+  const baseMoodIndex = Math.round((mood_level.score / 2) * 100)
+  const contraryWordingBoost = hasContraryWording ? Math.round(contrary_wording.noul * 20) : 0
+  const moodIndex = Math.min(100, baseMoodIndex + contraryWordingBoost)
+  const moodSummary = lacksContext
+    ? '無法可靠判讀'
+    : moodIndex >= 75
+      ? '可能明顯生氣或高度不舒服'
+      : moodIndex >= 50
+        ? '可能不舒服、失望或關係緊繃'
+        : moodIndex >= 25
+          ? '可能有點在意或有感觸'
+          : '看起來平穩'
 
-  const signalLabels: Record<GirlfriendSignal, string> = {
-    practical_request: '實際請求',
-    direct_feedback: '直接回饋',
-    reassurance_or_connection: '需要連結或支持',
-    coordination_or_expectation: '協調安排或期待',
-    boundary_setting: '設立界線',
-    indirect_tension: '間接緊張',
-    insufficient_context: '資訊不足',
-  }
-  const contraryWordingLabels: Record<ContraryWordingPattern, string> = {
-    literal_or_no_signal: '字面一致或沒有反話訊號',
-    surface_acceptance: '表面允許',
-    surface_reassurance: '表面沒事',
-    surface_distancing: '表面體貼或抽離',
-    insufficient_context: '資訊不足',
-  }
-
-  const riskColors: Record<RiskLevel, [string, string]> = {
-    safe: ['bgGreen', 'white'],
-    caution: ['bgYellow', 'black'],
-    danger: ['bgRed', 'white'],
-  }
-  const contraryWordingScore = Math.round((contrary_wording_level.score / 2) * 30)
-  const moodIndex = Math.min(100, Math.round((girlfriend_mood_level.score / 2) * 70 + contraryWordingScore))
-  const moodRiskLevel: RiskLevel = moodIndex >= 70 ? 'danger' : moodIndex >= 35 ? 'caution' : 'safe'
-  const contraryWordingRiskLevel: RiskLevel =
-    contrary_wording_pattern.choice === 'insufficient_context' || contrary_wording_level.score >= 1 ? 'caution' : 'safe'
-  const contraryWordingSummary = `${contraryWordingLabels[contrary_wording_pattern.choice]}（模型把握度 ${Math.round(contrary_wording_pattern.confidence * 100)}%）`
-
-
-  const lacksContext = context_adequacy.score < 0.75 || girlfriend_signal.confidence < 0.5
-  const riskLevel: RiskLevel = friction_level.score >= 1.25 ? 'danger' : friction_level.score >= 0.5 ? 'caution' : 'safe'
-
-  const nextSteps: Record<GirlfriendSignal, string> = {
-    practical_request: '先確認並處理具體請求；若做不到，直接說明限制與可行時間，不要失聯。',
-    direct_feedback: '先承認對方指出的具體影響，再確認希望怎麼調整；不要用猜測動機取代回應事件。',
-    reassurance_or_connection: '先確認自己是否有餘裕傾聽；可以關心與回應感受，但不要承諾超出自己界線的互動。',
-    coordination_or_expectation: '確認具體時間、行程或回覆節奏；若原先約定無法做到，主動更新而非讓對方猜測。',
-    boundary_setting: '尊重對方指定的互動範圍；不要用更多訊息要求對方立刻回應或改變決定。',
-    indirect_tension: '不要急著自責或反擊。可用開放問題確認：「我感覺這件事可能讓你不舒服，想聽你怎麼看」',
-    insufficient_context: '不要替對方下結論。補充前後文，或只用簡短開放問題確認是否有需要處理的事。',
-  }
-  const moodStep =
-    '女友心情指數偏高：先確認具體發生什麼事與她的感受，參考 Jev 的反話評估，但不要直接辯解或替她定義動機。'
-
-  const nextStep = lacksContext
-    ? nextSteps.insufficient_context
-    : moodIndex >= 60
-      ? moodStep
-      : nextSteps[girlfriend_signal.choice]
-
-  const riskFormatter = function (
-    this: { style: (value: string, ...effects: string[]) => string },
-    value: string,
-    _columnIndex: number,
-    rowIndex: number,
-    _rowData: unknown,
-    inputData: { riskLevel?: RiskLevel }[],
-  ) {
-    const rowRiskLevel = inputData[rowIndex].riskLevel
-
-    return rowRiskLevel === undefined ? value : this.style(value, ...riskColors[rowRiskLevel])
+  const nextSteps: Record<GirlfriendSituation, string> = {
+    practical_request: '先直接回答能不能處理這件事；做不到時，說明限制與你能做到的時間。',
+    unmet_expectation: '先承認沒有做到原本的約定或沒有主動更新，再給一個你確定做得到的新時間。',
+    needs_listening: '先問她想要你傾聽，還是一起想辦法；先回應感受，不要急著說教。',
+    direct_conflict: '先回應她指出的具體事件與造成的影響；不要立刻辯解、反擊或翻舊帳。',
+    needs_space: '尊重她想暫停或限制互動的要求；不要連續傳訊息要求她立刻回覆。',
+    unclear: '這句話不足以判斷她的心情。若有待處理的事，只問一個具體問題；否則先不要追問她是不是生氣。',
   }
 
-  const scoreOutOfFive = (value: number) => `${(1 + value * 2).toFixed(1)}／5`
-  const confidence = (value: number) => `${Math.round(value * 100)}%`
-
-  const table = Table(
-    [
-      { value: 'item', alias: '項目' },
-      { value: 'result', alias: '分析結果', formatter: riskFormatter },
-    ],
-    [
-      {
-        item: '主要溝通訊號',
-        result: `${signalLabels[girlfriend_signal.choice]}（模型把握度 ${confidence(girlfriend_signal.confidence)}）`,
-        riskLevel: girlfriend_signal.choice === 'insufficient_context' ? 'caution' : undefined,
-      },
-      {
-        item: '女友心情指數',
-        result: `${moodIndex}／100（語氣模型把握度 ${confidence(girlfriend_mood_level.confidence)}；Jev 反話評估 ${contraryWordingScore} 點）`,
-        riskLevel: moodRiskLevel,
-      },
-      {
-        item: '對話摩擦',
-        result: `${scoreOutOfFive(friction_level.score)}（模型把握度 ${confidence(friction_level.confidence)}）`,
-        riskLevel,
-      },
-      {
-        item: 'Jev 反話評估',
-        result: contraryWordingSummary,
-        riskLevel: contraryWordingRiskLevel,
-      },
-      {
-        item: '情境資訊完整度',
-        result: `${scoreOutOfFive(context_adequacy.score)}（模型把握度 ${confidence(context_adequacy.confidence)}）`,
-        riskLevel: lacksContext ? 'caution' : 'safe',
-      },
-      {
-        item: '建議下一步',
-        result: nextStep,
-        riskLevel: lacksContext ? 'caution' : undefined,
-      },
-    ],
-    {
-      borderColor: 'cyan',
-      borderStyle: 'solid',
-      width: '100%',
-    },
-  )
+  const nextStep = hasContraryWording && situation.choice !== 'needs_space'
+    ? '這句可能有字面與在意事項的落差。先不要照字面直接決定；可回「我想確認你比較在意的是哪一部分？」'
+    : nextSteps[situation.choice]
 
   console.log()
   console.log('Jev 女友對話求生慾即時警報器')
   console.log()
-  console.log(`訊息：「${state.message}」`)
-  console.log(`脈絡：「${state.context}」`)
-  console.log(table.render())
-  console.log('\n提醒：這是根據文字與提供脈絡的機率判讀，不是對對方內心或人格的定論。')
+  console.log(`女友心情指數：${lacksContext ? '無法可靠判讀' : `${moodIndex}／100`}｜${moodSummary}`)
+  console.log()
+  console.log(`建議行動事項：${nextStep}`)
 }
