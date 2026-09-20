@@ -1,5 +1,5 @@
 import { choice, score, TypeSafeClient } from '@typesafe-ai/sdk'
-import { renderReport, type ActionPlan } from './output.ts'
+import type { ActionPlan, AnalysisOptions, GirlfriendReport } from './types.ts'
 
 type GirlfriendConversation = {
   relationship: '目前交往中'
@@ -42,11 +42,7 @@ type GirlfriendLandmine =
   | 'silent_punish'
   | 'none'
 
-interface AnalysisOptions {
-  apiKey?: string
-}
-
-export async function runGirlfriendAnalysis(message: string, context = '沒有提供額外脈絡。', options?: AnalysisOptions): Promise<void> {
+export async function runGirlfriendAnalysis(message: string, context = '沒有提供額外脈絡。', options?: AnalysisOptions): Promise<GirlfriendReport> {
   const state: GirlfriendConversation = {
     relationship: '目前交往中',
     message,
@@ -243,13 +239,12 @@ export async function runGirlfriendAnalysis(message: string, context = '沒有�
       ? landmineItems[landmine.choice]
       : landmineItems.none
 
-  renderReport({
-    title: '女友翻譯器',
+  return {
     message,
     context,
     mood: lacksContext ? { kind: 'unreadable' } : { kind: 'score', index: moodIndex },
     diagnosis,
     action,
     landmines,
-  })
+  }
 }

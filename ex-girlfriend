@@ -1,6 +1,7 @@
 #!/usr/bin/env -S npx tsx
 import dotenv from 'dotenv'
 import { runExGirlfriendAnalysis } from './ex-girlfriend.ts'
+import { renderReport } from './output.ts'
 
 dotenv.config({ quiet: true })
 
@@ -10,4 +11,5 @@ if (cliMessage === undefined || cliMessage.trim() === '') {
   process.exit(1)
 }
 
-runExGirlfriendAnalysis(cliMessage, cliContext)
+const report = await runExGirlfriendAnalysis(cliMessage, cliContext)
+renderReport('前任翻譯器', report)

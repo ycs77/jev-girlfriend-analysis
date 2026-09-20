@@ -1,4 +1,5 @@
 import pc from 'picocolors'
+import type { Report } from './types.ts'
 
 const BAR_WIDTH = 20
 const LABEL_WIDTH = 10
@@ -14,15 +15,6 @@ function displayWidth(text: string): number {
 function label(text: string): string {
   const pad = Math.ceil(Math.max(0, LABEL_WIDTH - displayWidth(text)) / 2)
   return `${text}${'　'.repeat(pad)}`
-}
-
-export type MoodReading =
-  | { kind: 'unreadable' }
-  | { kind: 'score'; index: number }
-
-export type ActionPlan = {
-  direction: string
-  phrasing?: string
 }
 
 export function moodSummary(index: number): string {
@@ -45,16 +37,9 @@ function moodBar(index: number): string {
   return `${color('▓'.repeat(filled))}${'░'.repeat(BAR_WIDTH - filled)}`
 }
 
-export function renderReport(options: {
-  title: string
-  message: string
-  context: string
-  mood: MoodReading
-  diagnosis?: string
-  action: ActionPlan
-  landmines: string[]
-}): void {
-  const { title, message, context, mood, diagnosis, action, landmines } = options
+export function renderReport(title: string, report: Report): void {
+  const { message, context, mood, action, landmines } = report
+  const diagnosis = 'diagnosis' in report ? report.diagnosis : undefined
 
   console.log()
   console.log(`${pc.bold(`── ${title} `)}${'─'.repeat(28)}`)

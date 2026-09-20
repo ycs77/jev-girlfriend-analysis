@@ -1,5 +1,5 @@
 import { choice, noul, score, TypeSafeClient } from '@typesafe-ai/sdk'
-import { renderReport, type ActionPlan } from './output.ts'
+import type { ActionPlan, AnalysisOptions, ExGirlfriendReport } from './types.ts'
 
 type ExGirlfriendConversation = {
   relationship: '已結束交往關係'
@@ -23,11 +23,7 @@ type ExGirlfriendLandmine =
   | 'cross_boundary'
   | 'none'
 
-interface AnalysisOptions {
-  apiKey?: string
-}
-
-export async function runExGirlfriendAnalysis(message: string, context = '沒有提供額外脈絡。', options?: AnalysisOptions): Promise<void> {
+export async function runExGirlfriendAnalysis(message: string, context = '沒有提供額外脈絡。', options?: AnalysisOptions): Promise<ExGirlfriendReport> {
   const state: ExGirlfriendConversation = {
     relationship: '已結束交往關係',
     message,
@@ -167,8 +163,7 @@ export async function runExGirlfriendAnalysis(message: string, context = '沒有
         ? landmineItems[landmine.choice]
         : landmineItems.none
 
-  renderReport({
-    title: '前任翻譯器',
+  return {
     message,
     context,
     mood: hasSafetyBoundary || lacksContext
@@ -176,5 +171,5 @@ export async function runExGirlfriendAnalysis(message: string, context = '沒有
       : { kind: 'score', index: moodIndex },
     action,
     landmines,
-  })
+  }
 }
