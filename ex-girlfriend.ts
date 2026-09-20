@@ -1,8 +1,5 @@
-import dotenv from 'dotenv'
 import { choice, noul, score, TypeSafeClient } from '@typesafe-ai/sdk'
 import { renderReport, type ActionPlan } from './output.ts'
-
-dotenv.config({ quiet: true })
 
 type ExGirlfriendConversation = {
   relationship: '已結束交往關係'
@@ -26,19 +23,20 @@ type ExGirlfriendLandmine =
   | 'cross_boundary'
   | 'none'
 
-const [message, context = '沒有提供額外脈絡。'] = process.argv.slice(2)
+interface AnalysisOptions {
+  apiKey?: string
+}
 
-if (message === undefined || message.trim() === '') {
-  console.error('用法：npm run ex-girlfriend -- "前女友的訊息" "可選的前後文"')
-  process.exitCode = 1
-} else {
+export async function runExGirlfriendAnalysis(message: string, context = '沒有提供額外脈絡。', options?: AnalysisOptions): Promise<void> {
   const state: ExGirlfriendConversation = {
     relationship: '已結束交往關係',
     message,
     context,
   }
 
-  const client = new TypeSafeClient()
+  const client = new TypeSafeClient({
+    apiKey: options?.apiKey,
+  })
   const response = await client.systemOne({
     state,
     questions: {

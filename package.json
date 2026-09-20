@@ -2,8 +2,6 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "girlfriend": "tsx girlfriend.ts",
-    "ex-girlfriend": "tsx ex-girlfriend.ts",
     "check": "tsc --noEmit"
   },
   "dependencies": {

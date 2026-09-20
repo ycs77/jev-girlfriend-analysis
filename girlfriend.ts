@@ -1,8 +1,5 @@
-import dotenv from 'dotenv'
 import { choice, score, TypeSafeClient } from '@typesafe-ai/sdk'
 import { renderReport, type ActionPlan } from './output.ts'
-
-dotenv.config({ quiet: true })
 
 type GirlfriendConversation = {
   relationship: '目前交往中'
@@ -45,19 +42,20 @@ type GirlfriendLandmine =
   | 'silent_punish'
   | 'none'
 
-const [message, context = '沒有提供額外脈絡。'] = process.argv.slice(2)
+interface AnalysisOptions {
+  apiKey?: string
+}
 
-if (message === undefined || message.trim() === '') {
-  console.error('用法：npm run girlfriend -- "女友的訊息" "可選的前後文"')
-  process.exitCode = 1
-} else {
+export async function runGirlfriendAnalysis(message: string, context = '沒有提供額外脈絡。', options?: AnalysisOptions): Promise<void> {
   const state: GirlfriendConversation = {
     relationship: '目前交往中',
     message,
     context,
   }
 
-  const client = new TypeSafeClient()
+  const client = new TypeSafeClient({
+    apiKey: options?.apiKey,
+  })
   const response = await client.systemOne({
     state,
     questions: {

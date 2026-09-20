@@ -1,0 +1,13 @@
+#!/usr/bin/env -S npx tsx
+import dotenv from 'dotenv'
+import { runExGirlfriendAnalysis } from './ex-girlfriend.ts'
+
+dotenv.config({ quiet: true })
+
+const [cliMessage, cliContext] = process.argv.slice(2)
+if (cliMessage === undefined || cliMessage.trim() === '') {
+  console.error('用法：./ex-girlfriend "前女友的訊息" "可選的前後文"')
+  process.exit(1)
+}
+
+runExGirlfriendAnalysis(cliMessage, cliContext)
