@@ -1,5 +1,5 @@
 import pc from 'picocolors'
-import type { Report } from './types.ts'
+import type { Report } from '../core/types.ts'
 
 const BAR_WIDTH = 20
 const LABEL_WIDTH = 10

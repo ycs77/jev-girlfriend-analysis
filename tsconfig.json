@@ -14,5 +14,10 @@
     "skipLibCheck": true,
     "noEmit": true
   },
-  "include": ["*.ts"]
+  "include": [
+    "core/*.ts",
+    "cli/*.ts",
+    "girlfriend",
+    "ex-girlfriend"
+  ]
 }
