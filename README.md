@@ -12,6 +12,7 @@
 
 ```sh
 npm install
+chmod +x girlfriend.ts ex-girlfriend.ts
 cp .env.example .env
 ```
 
