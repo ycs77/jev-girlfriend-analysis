@@ -14,6 +14,7 @@ type GirlfriendSituation =
   | 'practical_request'
   | 'unmet_expectation'
   | 'needs_listening'
+  | 'reassurance_test'
   | 'direct_conflict'
   | 'needs_space'
   | 'unclear'
@@ -22,12 +23,14 @@ type InterpersonalSignal =
   | 'surface_permission'
   | 'surface_reassurance'
   | 'surface_consideration'
+  | 'reassurance_probe'
   | 'direct_discontent'
   | 'none_or_unsupported'
 
 type ReplyFocus =
   | 'acknowledge_impact'
   | 'offer_presence'
+  | 'reassure_concretely'
   | 'give_a_specific_update'
   | 'clarify_gently'
   | 'respect_space'
@@ -35,6 +38,8 @@ type ReplyFocus =
 type GirlfriendLandmine =
   | 'dismiss_minimize'
   | 'take_at_face_value'
+  | 'literal_answer'
+  | 'dismissive_deny'
   | 'interrogate_pressure'
   | 'lecture_justify'
   | 'silent_punish'
@@ -62,6 +67,7 @@ if (message === undefined || message.trim() === '') {
           practical_request: '具體請求：明確詢問資訊、協助、安排、物品或其他可處理事項。',
           unmet_expectation: '約定落空或期待落差：提到等待、未回覆、延後、忘記約定，或沒有被事先告知。',
           needs_listening: '想被傾聽或支持：分享壓力、脆弱感受或近況，沒有明確要求解決問題。',
+          reassurance_test: '安全感測試（送命題）：表面是問句，實際在測答案裡展現的在乎，如「我是不是變胖了」「你覺得她漂亮嗎」「我跟你媽同時掉進水裡你先救誰」「這道菜是不是沒有她做的好吃」，照字面誠實回答就是地雷。',
           direct_conflict: '直接衝突：明確表達不滿、生氣、失望、責備、辱罵或逼問。',
           needs_space: '想暫停或設界線：明確表示現在不想談、需要時間，或限制互動方式。',
           unclear: '資訊不足：單靠現有訊息與脈絡，無法可靠區分以上情境。',
@@ -73,6 +79,7 @@ if (message === undefined || message.trim() === '') {
           surface_permission: '表面放行：看似同意對方去做某事或說「隨意」，但脈絡顯示比較在意陪伴、被商量或共同決定。',
           surface_reassurance: '表面沒事：看似說沒關係、算了或自己很好，但脈絡顯示仍有未處理的事件、期待或受傷感。',
           surface_consideration: '表面體貼：看似催對方先忙、慢慢來或不打擾，但脈絡顯示可能在意被延後、忽略或沒有主動更新。',
+          reassurance_probe: '安全感試探：用問句確認自己在你心中的位置或價值，如「你是不是覺得我很煩」「你是不是沒有以前那麼愛我了」「你到底愛不愛我」，要的是具體保證，不是字面答案。',
           direct_discontent: '直接不滿：文字本身明確表達生氣、失望、責備、質問或受傷，不需要從反話推論。',
           none_or_unsupported: '沒有足夠證據：訊息與脈絡不支持上述溝通訊號，或仍有多種合理解讀。',
         },
@@ -92,16 +99,19 @@ if (message === undefined || message.trim() === '') {
         {
           acknowledge_impact: '先承認具體事件、延誤或失約造成的影響，再提出可做到的補救。',
           offer_presence: '先確認她現在比較需要陪伴、傾聽，或一起想辦法；不要直接替她決定。',
+          reassure_concretely: '用具體事實與行動給她要的保證；不空泛否認，也不照字面回答測試型問句。',
           give_a_specific_update: '清楚說明目前限制與可做到的具體時間，避免只回「好」或讓對方繼續等。',
           clarify_gently: '用一個不預設她生氣的具體問題確認在意事項，不要把字面話直接當最終結論。',
           respect_space: '尊重她想暫停或限制互動的要求，不要連續傳訊息要求立刻回覆。',
         },
       ),
       landmine: choice(
-        '依據 `message` 與 `context`，選出回覆這則訊息時最容易踩到的地雷：不能說的話、不能做的事。用常見台詞當錨點判斷：「沒事」「我很好」「我沒關係」「我才沒有在生氣」「算了」的地雷是敷衍帶過、把表面沒事當真；「隨便你」「去啊」「你高興就好」「不用陪我沒關係」「那你先忙」「你慢慢來，我不急」「我可以自己回家」「我要走了」的地雷是照字面行動；「哦」「嗯」「呵呵」「睡了」等短回覆的地雷是連續逼問或硬聊；傾訴心事或爭執中的地雷是說教、檢討與辯解；「晚點再說」「不打擾你了」的地雷是無限期沉默。沒有明顯地雷時選「無」。',
+        '依據 `message` 與 `context`，選出回覆這則訊息時最容易踩到的地雷：不能說的話、不能做的事。用常見台詞當錨點判斷：「沒事」「我很好」「我沒關係」「我才沒有在生氣」「算了」的地雷是敷衍帶過、把表面沒事當真；「隨便你」「去啊」「你高興就好」「不用陪我沒關係」「那你先忙」「你慢慢來，我不急」「我可以自己回家」「我要走了」的地雷是照字面行動；「我自己去就好」「我不需要你陪我」「我以後不會再煩你了」的地雷是照字面接受或回「好啊，隨便妳」；「哦」「嗯」「呵呵」「睡了」等短回覆的地雷是連續逼問或硬聊；「你是不是覺得我很煩」「你是不是沒有以前那麼愛我了」「你到底愛不愛我」「你都不在乎我」的地雷是敷衍否認；「你只會道歉」「道歉有什麼用」的地雷是繼續空泛道歉；傾訴心事或爭執中的地雷是說教、檢討與辯解；「謝謝你喔」「你人真的很好」等諷刺句的地雷是裝沒聽懂；送命題「我是不是變胖了」「你覺得她漂亮嗎」「先救誰」「是不是沒有她做的好吃」的地雷就是字面答案與回答前的遲疑；「晚點再說」「不打擾你了」的地雷是無限期沉默。沒有明顯地雷時選「無」。',
         {
           dismiss_minimize: '敷衍帶過：只回「沒事就好」「你都說沒事了，我還能怎樣」「哦，好」，把表面沒事當成真的沒事。',
-          take_at_face_value: '照字面行動：「好啊，那我就去了」「那我真的去囉」「好，路上小心」「拜」——真的去、真的慢慢來、讓她自己回家。',
+          take_at_face_value: '照字面行動：「好啊，那我就去了」「那我真的去囉」「好，路上小心」「拜」——真的去、真的慢慢來、讓她自己回家，或把「我自己去就好」「我不需要你陪我」當真。',
+          literal_answer: '照字面回答送命題：「有一點」「還蠻漂亮的」、認真分析先救誰、回憶前女友手藝，或回答前遲疑——遲疑本身就是答案。',
+          dismissive_deny: '敷衍否認她的感受或試探：「妳想太多了」「又來了」「我哪有」，或對「道歉有什麼用」繼續空泛道歉而不給具體改變。',
           interrogate_pressure: '連續逼問：「你到底怎麼了」「你不說我怎麼知道」「你是不是又生氣了」，或對短回覆硬聊、洗版。',
           lecture_justify: '說教與辯解：「職場本來就這樣」「你是不是也有做不好的地方」「那就離職啊」，或繼續講道理、翻舊帳。',
           silent_punish: '無限期沉默：已讀不回、讓「晚點」沒有期限、用冷戰懲罰對方。',
@@ -143,6 +153,10 @@ if (message === undefined || message.trim() === '') {
       direction: '先接住情緒、暫緩建議與檢討；不確定她要什麼就直接問。',
       phrasing: '「辛苦了，我在聽。你想要我陪你罵一下，還是一起想辦法？」',
     },
+    reassurance_test: {
+      direction: '先辨識她在測什麼（位置、眼光、優先順序），不照字面回答；把肯定具體收回到她身上，再補一個做得到的行動。',
+      phrasing: '「妳一直都很重要，這點沒變過。妳會這樣問，是不是最近我哪裡讓妳不安？」',
+    },
     direct_conflict: {
       direction: '先回應她指出的具體事件與造成的影響；不要立刻辯解、反擊或翻舊帳。',
       phrasing: '「這次是我沒做到。你受到的影響，我可以怎麼補？」',
@@ -159,6 +173,10 @@ if (message === undefined || message.trim() === '') {
   const replySteps: Record<ReplyFocus, ActionPlan> = {
     acknowledge_impact: situationSteps.unmet_expectation,
     offer_presence: situationSteps.needs_listening,
+    reassure_concretely: {
+      direction: '用具體事實與行動回應她要的保證；不空泛否認，不照字面回答測試型問句。',
+      phrasing: '「愛啊，而且不是隨口說——（具體例子）。這週我（具體行動）。」',
+    },
     give_a_specific_update: {
       direction: '說清楚目前的限制與能回覆或完成的具體時間；不要只回「好」讓她繼續等。',
       phrasing: '「我不是不想理你，這邊到（時間），（時間）我主動找你。」',
@@ -173,6 +191,7 @@ if (message === undefined || message.trim() === '') {
     surface_permission: '可能表面放行，但脈絡顯示更在意陪伴、被商量或共同決定。',
     surface_reassurance: '可能表面說沒事，但脈絡顯示仍有未處理的期待或感受。',
     surface_consideration: '可能表面體貼，但脈絡顯示在意被延後、忽略或沒有主動更新。',
+    reassurance_probe: '可能是安全感試探，用問句確認自己在你心中的位置；要的是具體保證，不是字面答案。',
     direct_discontent: '文字直接表達了不滿、受傷或關係壓力。',
   }
   const landmineItems: Record<GirlfriendLandmine, string[]> = {
@@ -184,6 +203,15 @@ if (message === undefined || message.trim() === '') {
       '只回「哦，好」「好啊，那我就去了」',
       '真的照字面去、真的慢慢來、讓她自己走',
       '「拜」「好，路上小心」',
+    ],
+    literal_answer: [
+      '照字面誠實回答這類測試型問句',
+      '認真分析題目本身，或把她跟別人具體比較',
+      '回答前遲疑——遲疑本身就是答案',
+    ],
+    dismissive_deny: [
+      '「妳想太多了」「又來了」「我哪有」',
+      '繼續空泛道歉，不給具體改變',
     ],
     interrogate_pressure: [
       '連續追問「你到底怎麼了」「你是不是又生氣了」',
