@@ -244,7 +244,7 @@ export async function runGirlfriendAnalysis(message: string, context = '沒有�
       : landmineItems.none
 
   renderReport({
-    title: 'Jev 女友對話求生慾即時警報器',
+    title: '女友翻譯器',
     message,
     context,
     mood: lacksContext ? { kind: 'unreadable' } : { kind: 'score', index: moodIndex },

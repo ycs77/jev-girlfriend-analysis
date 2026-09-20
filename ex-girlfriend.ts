@@ -168,7 +168,7 @@ export async function runExGirlfriendAnalysis(message: string, context = '沒有
         : landmineItems.none
 
   renderReport({
-    title: 'Jev 前女友對話求生慾即時警報器',
+    title: '前任翻譯器',
     message,
     context,
     mood: hasSafetyBoundary || lacksContext
