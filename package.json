@@ -1,12 +1,22 @@
 {
-  "private": "true",
+  "private": true,
   "type": "module",
+  "scripts": {
+    "girlfriend": "tsx girlfriend.ts",
+    "ex-girlfriend": "tsx ex-girlfriend.ts",
+    "check": "tsc --noEmit"
+  },
   "dependencies": {
     "@typesafe-ai/sdk": "^0.6.0",
     "dotenv": "^18.0.1",
+    "tsx": "^4.23.14",
     "tty-table": "^5.0.0"
   },
   "devDependencies": {
+    "@types/node": "^26.6.2",
     "typescript": "^7.0.2"
+  },
+  "allowScripts": {
+    "esbuild@0.28.2": true
   }
 }
