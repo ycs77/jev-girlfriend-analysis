@@ -17,7 +17,6 @@
   "include": [
     "core/*.ts",
     "cli/*.ts",
-    "girlfriend",
-    "ex-girlfriend"
+    "girlfriend"
   ]
 }
