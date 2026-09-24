@@ -12,7 +12,7 @@
 
 ```sh
 npm install
-chmod +x girlfriend.ts ex-girlfriend.ts
+chmod +x girlfriend ex-girlfriend
 cp .env.example .env
 ```
 
@@ -20,7 +20,7 @@ cp .env.example .env
 
 ## 選擇對應腳本
 
-### 女友：`girlfriend.ts`
+### 女友：`girlfriend`
 
 用於仍在交往的關係。高心情指數時，建議會優先處理約定落空、衝突、想被傾聽或需要暫停互動的情境；文字與脈絡共同顯示可能有反話時，建議會改為先確認她真正比較在意的事；出現送命題式的測試問句時，建議會先辨識她在測什麼，不照字面回答。
 
@@ -37,7 +37,7 @@ cp .env.example .env
 ./girlfriend "好喔！都可以啊！你開心就好我沒關係的" "她叫我跟前女友保持距離我覺得沒必要"
 ```
 
-### 前女友：`ex-girlfriend.ts`
+### 前女友：`ex-girlfriend`
 
 用於已結束交往關係。建議會優先限制回覆範圍：只處理交接與共同責任、尊重聯絡界線，不把回憶或近況直接視為復合邀請。
 
