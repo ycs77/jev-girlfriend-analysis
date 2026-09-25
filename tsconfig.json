@@ -15,8 +15,7 @@
     "noEmit": true
   },
   "include": [
-    "core/*.ts",
-    "cli/*.ts",
+    "src/*.ts",
     "girlfriend"
   ]
 }

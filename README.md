@@ -1,4 +1,4 @@
-# 女友翻譯器
+# 女友情緒分析
 
 基於 [TypeSafe AI](https://typesafe.ai/) 的 **Jev System One 模型** 建立的實驗專案。它根據你提供的訊息與脈絡，輸出對方 **可能的心情狀態**。
 
@@ -17,5 +17,5 @@ cp .env.example .env
 ## 使用方式
 
 ```sh
-./girlfriend "女友的訊息"
+./girlfriend "愛幹嘛幹嘛"
 ```
