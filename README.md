@@ -19,3 +19,7 @@ cp .env.example .env
 ```sh
 ./girlfriend "愛幹嘛幹嘛"
 ```
+
+## Credit
+
+- [jevtest 情緒測謊器](https://github.com/joshhu/jevtest)
